@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-DBMS Diagram Generator</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #2d233e 0%, #1e1a2f 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        .input-bar {
+            background-color: #3c3451;
+            border: 1px solid #4a4161;
+            border-radius: 9999px;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .input-bar:focus-within {
+            box-shadow: 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            border-color: #9e69f8;
+        }
+
+        .file-upload-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .file-upload-label {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background-color: #4a4161;
+            border: 1px solid #5a5171;
+            color: #e0e0e0;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .file-upload-label:hover {
+            background-color: #5a5171;
+        }
+
+        .clock-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0.8;
+            z-index: 1000;
+        }
+
+        .clock-center {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 10;
+        }
+
+        .hand {
+            position: absolute;
+            width: 2px;
+            background-color: white;
+            transform-origin: bottom center;
+            bottom: 50%;
+            border-radius: 2px;
+        }
+
+        .hour-hand {
+            height: 30%;
+            width: 4px;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .minute-hand {
+            height: 40%;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .second-hand {
+            height: 45%;
+            background-color: #9e69f8;
+            width: 1px;
+        }
+
+        .top-right-bar {
+            position: absolute;
+            top: 20px;
+            right: 150px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-profile {
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .speed-display,
+        .logout-btn {
+            background-color: rgba(74, 65, 97, 0.5);
+            border: 1px solid rgba(90, 81, 113, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(90, 81, 113, 0.5);
+        }
+        
+        .animated-text {
+            background: linear-gradient(90deg, #8A2BE2, #6A5ACD, #ffb6c1, #8A2BE2);
+            background-size: 400% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: animateGradient 8s linear infinite,
+                       pulseGlow 4s infinite ease-in-out;
+        }
+
+        @keyframes animateGradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        @keyframes pulseGlow {
+            0% {
+                text-shadow: 0 0 5px rgba(176, 169, 199, 0.5);
+            }
+            50% {
+                text-shadow: 0 0 10px #b0a9c7, 0 0 15px #b0a9c7;
+            }
+            100% {
+                text-shadow: 0 0 5px rgba(176, 169, 199, 0.5);
+            }
+        }
+
+        footer {
+            margin-top: auto;
+            color: #b0a9c7;
+            padding: 1rem;
+            font-size: 0.875rem;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="absolute top-4 left-4">
+        <img src="https://thsystems.net.in/uploads/setting/logo1_1726515105.png" alt="Company Logo"
+            class="h-20 w-auto rounded-lg" />
+    </div>
+    
+    <div class="top-right-bar">
+        <div id="speedDisplay" class="speed-display">Checking speed...</div>
+        <div class="user-profile">
+            {% if user.is_authenticated %}
+                <p style="display: flex; align-items: center; gap: 8px;">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgWam4kswZxNLU-s3htuTKs_JjmBf0EhXieHnlnAVun-LN5PCI95jS1D8Drn83Z385AQo&usqp=CAU" 
+                         alt="User Icon" 
+                         style="width: 24px; height: 24px; border-radius: 50%;">
+                    Welcome, {{ user.username }}!
+                </p>
+                <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="logout-btn">Log In</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="clock-container">
+        <div class="clock-center"></div>
+        <div class="hand hour-hand" style="transform: rotate(0deg);"></div>
+        <div class="hand minute-hand" style="transform: rotate(0deg);"></div>
+        <div class="hand second-hand" style="transform: rotate(0deg);"></div>
+    </div>
+
+    <div id="root"></div>
+
+    {% verbatim %}
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        mermaid.initialize({
+            theme: 'dark',
+            startOnLoad: false
+        });
+
+        function App() {
+            const [prompt, setPrompt] = useState('');
+            const [diagramHTML, setDiagramHTML] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const diagramContainerRef = useRef(null);
+            const fileInputRef = useRef(null);
+            
+            const [time, setTime] = useState({ h: 0, m: 0, s: 0 });
+
+            useEffect(() => {
+                const updateClock = () => {
+                    const now = new Date();
+                    const seconds = now.getSeconds();
+                    const minutes = now.getMinutes();
+                    const hours = now.getHours();
+
+                    const secondDeg = (seconds / 60) * 360;
+                    const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
+                    const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
+
+                    setTime({
+                        s: secondDeg,
+                        m: minuteDeg,
+                        h: hourDeg
+                    });
+                };
+
+                const intervalId = setInterval(updateClock, 1000);
+                updateClock();
+
+                return () => clearInterval(intervalId);
+            }, []);
+
+            const diagramExamples = {
+                'Flowchart': `graph TD\n    A[Start] --> B(Process);\n    B --> C{Decision};\n    C -- Yes --> D[End];\n    C -- No --> B;`,
+                'Sequence Diagram': `sequenceDiagram\n    participant A as Alice\n    participant B as Bob\n    A->>B: Hi Bob\n    activate B\n    B-->>A: Hi Alice\n    deactivate B`,
+                'Class Diagram': `classDiagram\n    Class01 <|-- Class02\n    Class03 *-- Class04\n    Class05 o-- Class06\n    Class07 .. Class08\n    Class09 -- Class10`,
+                'ER Diagram': `erDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses`,
+                'State Diagram': `stateDiagram-v2\n    [*] --> StateA\n    StateA --> StateB\n    StateB --> [*]`
+            };
+
+            const handleGenerate = () => {
+                if (!prompt.trim()) {
+                    setError('Please enter Mermaid syntax to generate a diagram.');
+                    return;
+                }
+                setLoading(true);
+                setDiagramHTML('');
+                setError(null);
+                const mermaidCode = prompt;
+                setTimeout(() => {
+                    try {
+                        mermaid.render('diagramContainer', mermaidCode)
+                            .then(({ svg }) => {
+                                setDiagramHTML(svg);
+                                setError(null);
+                            })
+                            .catch(renderError => {
+                                setError('Mermaid Render Error: Could not render the diagram. Please check your syntax.');
+                                console.error('Mermaid Render Error:', renderError);
+                            });
+                    } catch (renderError) {
+                        setError('Mermaid Render Error: Could not render the diagram. Please check your syntax.');
+                        console.error('Mermaid Render Error:', renderError);
+                    }
+                    setLoading(false);
+                }, 500);
+            };
+
+            const handleDownload = () => {
+                if (!diagramHTML) {
+                    setError('No diagram to download. Please generate one first.');
+                    return;
+                }
+                const svgBlob = new Blob([diagramHTML], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'mermaid-diagram.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            };
+            
+            const handleFileChange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        setPrompt(content);
+                        setError(null);
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            const handleClearFile = () => {
+                setPrompt('');
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                    <div className="w-full max-w-4xl flex flex-col items-center justify-center">
+                        <div className="text-center mb-12">
+                            <h1 class="animated-text text-5xl font-bold tracking-tight text-gray-100">AI-DBMS</h1>
+                            <p class="animated-text mt-2 text-lg text-gray-300">Your offline diagramming assistant</p>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl mb-8">
+                            {Object.keys(diagramExamples).map((type, index) => (
+                                <div
+                                    key={index}
+                                    className="bg-[#3c3451] border border-[#4a4161] rounded-xl p-4 text-center text-sm font-medium text-[#b0a9c7] cursor-pointer transition-all duration-200 hover:border-[#9e69f8] hover:bg-[#4a4161] hover:text-white hover:shadow-lg hover:translate-y-[-4px]"
+                                    onClick={() => setPrompt(diagramExamples[type])}
+                                >
+                                    {type}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="input-bar w-full max-w-xl">
+                            <input
+                                id="promptInput"
+                                type="text"
+                                placeholder="Enter Mermaid syntax here to generate a diagram..."
+                                autoFocus
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="flex-grow border-none outline-none text-base text-gray-100 bg-transparent"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleGenerate();
+                                }}
+                            />
+                            <button
+                                id="generateButton"
+                                title="Generate Diagram"
+                                onClick={handleGenerate}
+                                disabled={loading}
+                                className="w-10 h-10 bg-[#9e69f8] rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-[#8b5cf6] disabled:bg-gray-500 disabled:cursor-not-allowed"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                    className="text-white w-6 h-6">
+                                    <path d="m3 3 3 9-3 9 19-9Z"></path>
+                                    <path d="M6 12h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="file-upload-container mt-4">
+                            <input type="file" id="fileInput" ref={fileInputRef} accept=".mmd,.txt,.mermaid" onChange={handleFileChange} class="hidden" />
+                            <label for="fileInput" class="file-upload-label">Choose File</label>
+                            <button onClick={handleClearFile} class="file-upload-label">Clear</button>
+                        </div>
+
+                        <div className="flex items-center justify-center my-4 gap-4">
+                            {loading && (
+                                <span className="text-purple-400 font-medium">Generating diagram...</span>
+                            )}
+                            {error && (
+                                <span className="text-red-400 font-medium">{error}</span>
+                            )}
+                            {diagramHTML && (
+                                <button
+                                    onClick={handleDownload}
+                                    className="px-6 py-2 bg-gray-600 rounded-full text-white text-sm font-medium transition-all duration-200 hover:bg-gray-700"
+                                >
+                                    Download SVG
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {diagramHTML && (
+                        <div className="w-full max-w-4xl p-8 mt-8 bg-[#1e1a2f] border border-[#4a4161] rounded-2xl shadow-xl flex flex-col items-center justify-center">
+                            <h2 className="text-2xl font-bold text-gray-100 mb-4">Your Diagram</h2>
+                            <div ref={diagramContainerRef} id="diagramContainer" className="w-full h-auto flex justify-center" dangerouslySetInnerHTML={{ __html: diagramHTML }}>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+
+    <script type="text/javascript">
+        // Function to check and display internet speed
+        function checkConnectionSpeed() {
+            const speedDisplay = document.getElementById('speedDisplay');
+            speedDisplay.textContent = 'Checking speed...';
+
+            // A small, dummy file to test download speed
+            const imageUrl = 'https://i.imgur.com/xQ7P85I.jpg'; 
+            const fileSize = 100000; // File size in bytes (100KB)
+
+            const startTime = new Date().getTime();
+            const cacheBuster = `?cachebuster=${startTime}`;
+
+            fetch(imageUrl + cacheBuster)
+                .then(response => {
+                    const endTime = new Date().getTime();
+                    const duration = (endTime - startTime) / 1000; // Duration in seconds
+                    const bitsLoaded = fileSize * 8; // Convert bytes to bits
+                    const speedMbps = (bitsLoaded / duration) / (1024 * 1024); // Convert to Mbps
+                    speedDisplay.textContent = `${speedMbps.toFixed(2)} Mbps`;
+                })
+                .catch(error => {
+                    speedDisplay.textContent = 'Could not get speed';
+                });
+        }
+        
+        // Run the function when the page loads
+        document.addEventListener('DOMContentLoaded', checkConnectionSpeed);
+    </script>
+    {% endverbatim %}
+
+    <footer>
+        &copy; 2025 All Rights Reserved to TH Systems.
+    </footer>
+</body>
+
+</html>
